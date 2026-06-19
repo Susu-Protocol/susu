@@ -1,0 +1,28 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="susuBg" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#D9683C" />
+      <stop offset="100%" stop-color="#9C3F20" />
+    </linearGradient>
+    <linearGradient id="susuDot" x1="222" y1="70" x2="290" y2="138" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F0C040" />
+      <stop offset="100%" stop-color="#C98A0E" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#susuBg)" />
+
+  <g transform="rotate(-45 256 256)">
+    <circle
+      cx="256" cy="256" r="138"
+      fill="none"
+      stroke="#FBF4EA"
+      stroke-width="66"
+      stroke-linecap="round"
+      stroke-dasharray="650.97 217.04"
+    />
+  </g>
+
+  <circle cx="256" cy="118" r="46" fill="url(#susuDot)" />
+  <circle cx="242" cy="104" r="13" fill="#FBE8A8" opacity="0.8" />
+</svg>
