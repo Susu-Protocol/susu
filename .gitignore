@@ -19,6 +19,7 @@
 
 # production
 /build
+/contracts/build/
 
 # misc
 .DS_Store
