@@ -1,0 +1,13 @@
+{
+    "name": "Susu Protocol",
+    "short_name": "Susu",
+    "description": "Trustless rotating savings circles on Sui — contribute each cycle, earn yield, build credit history.",
+    "start_url": "/dashboard",
+    "display": "standalone",
+    "background_color": "#FAF7F2",
+    "theme_color": "#C4522A",
+    "icons": [
+        { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    ]
+}
