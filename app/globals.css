@@ -1,0 +1,196 @@
+@import "tailwindcss";
+
+/* ─── Design Tokens ──────────────────────────────────────────────────────── */
+:root {
+    --bg-cream:          #FAF7F2;
+    --bg-warm:           #F5F0E8;
+    --bg-surface:        #FFFFFF;
+    --bg-elevated:       #FFFDF9;
+
+    --terracotta:        #C4522A;
+    --terracotta-light:  #E8795A;
+    --terracotta-dim:    #7A3218;
+    --gold:              #D4A017;
+    --gold-light:        #F0C040;
+    --gold-dim:          #8A6610;
+    --forest:            #2D5016;
+    --forest-light:      #4A7A28;
+
+    --text-primary:      #1A1208;
+    --text-secondary:    #5C4A32;
+    --text-muted:        #9C8A72;
+
+    --border-subtle:     #EDE5D8;
+    --border-default:    #D8CDB8;
+    --border-strong:     #B8A898;
+
+    --success:           #22C55E;
+    --warning:           #F59E0B;
+    --danger:            #EF4444;
+
+    --sui-blue:          #4DA2FF;
+
+    --shadow-sm:  0 1px 3px rgba(26,18,8,.06), 0 1px 2px rgba(26,18,8,.04);
+    --shadow-md:  0 4px 16px rgba(26,18,8,.09), 0 2px 4px rgba(26,18,8,.04);
+    --shadow-lg:  0 12px 32px rgba(26,18,8,.12), 0 4px 8px rgba(26,18,8,.06);
+    --shadow-xl:  0 24px 64px rgba(26,18,8,.16);
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────── */
+html, body {
+    background-color: var(--bg-cream);
+    color: var(--text-primary);
+    font-family: var(--font-source-sans), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+}
+
+.font-display { font-family: var(--font-playfair), Georgia, serif; }
+
+/* ─── Backgrounds ────────────────────────────────────────────────────────── */
+.pattern-bg {
+    background-color: var(--bg-cream);
+    background-image:
+        repeating-linear-gradient(45deg, transparent, transparent 24px,
+            rgba(196,82,42,.025) 24px, rgba(196,82,42,.025) 25px),
+        repeating-linear-gradient(-45deg, transparent, transparent 24px,
+            rgba(212,160,23,.025) 24px, rgba(212,160,23,.025) 25px);
+}
+
+.gradient-hero {
+    background:
+        radial-gradient(ellipse 90% 70% at 50% -10%,
+            rgba(196,82,42,.14) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 50% at 80% 20%,
+            rgba(212,160,23,.08) 0%, transparent 60%),
+        var(--bg-cream);
+}
+
+/* ─── Glassmorphism ──────────────────────────────────────────────────────── */
+.glass {
+    backdrop-filter: blur(16px) saturate(160%);
+    background-color: rgba(255,255,255,.80);
+    border: 1px solid rgba(237,229,216,.75);
+}
+
+.glass-nav {
+    backdrop-filter: blur(20px) saturate(180%);
+    background-color: rgba(250,247,242,.88);
+    border-bottom: 1px solid rgba(237,229,216,.60);
+}
+
+/* ─── Card Interactions ──────────────────────────────────────────────────── */
+.card-interactive {
+    transition: transform 200ms cubic-bezier(.4,0,.2,1),
+                box-shadow 200ms cubic-bezier(.4,0,.2,1),
+                border-color 200ms cubic-bezier(.4,0,.2,1);
+}
+.card-interactive:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-default);
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────────── */
+@keyframes pulse-gold {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(212,160,23,.45); }
+    50%       { box-shadow: 0 0 0 10px rgba(212,160,23,0); }
+}
+.pulse-gold { animation: pulse-gold 2.2s ease-in-out infinite; }
+
+@keyframes pulse-terracotta {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(196,82,42,.4); }
+    50%       { box-shadow: 0 0 0 8px rgba(196,82,42,0); }
+}
+.pulse-terracotta { animation: pulse-terracotta 2s ease-in-out infinite; }
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    40%       { transform: translateY(-12px) rotate(1.5deg); }
+    70%       { transform: translateY(-6px) rotate(-1deg); }
+}
+.float { animation: float 7s ease-in-out infinite; }
+
+@keyframes float-b {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-16px); }
+}
+.float-b { animation: float-b 9s ease-in-out infinite; }
+
+@keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.spin-slow { animation: spin-slow 24s linear infinite; }
+
+@keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+.shimmer {
+    background: linear-gradient(90deg,
+        var(--bg-warm) 25%,
+        var(--bg-surface) 50%,
+        var(--bg-warm) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite;
+}
+
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fade-up .55s ease-out forwards; }
+
+@keyframes count-up {
+    from { opacity: 0; transform: scale(.9); }
+    to   { opacity: 1; transform: scale(1); }
+}
+.animate-count { animation: count-up .4s ease-out forwards; }
+
+@keyframes glow-ring {
+    0%, 100% { opacity: .4; }
+    50%       { opacity: .9; }
+}
+.glow-ring { animation: glow-ring 3s ease-in-out infinite; }
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+/* ─── Focus ──────────────────────────────────────────────────────────────── */
+:focus-visible {
+    outline: 2px solid var(--terracotta);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* ─── Range Input ────────────────────────────────────────────────────────── */
+input[type="range"] {
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--border-default);
+    border-radius: 2px;
+    cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--terracotta);
+    cursor: pointer;
+    box-shadow: 0 0 0 3px rgba(196,82,42,.18);
+    transition: box-shadow 150ms;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 0 6px rgba(196,82,42,.22);
+}
+
+/* ─── Selection ──────────────────────────────────────────────────────────── */
+::selection {
+    background: rgba(196,82,42,.15);
+    color: var(--text-primary);
+}
