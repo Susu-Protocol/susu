@@ -4,7 +4,15 @@ edition = "2024.beta"
 version = "1.0.0"
 
 [dependencies]
-Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "testnet" }
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "ff1fe0ec455153707136cffd0dc77dfb77ba9ad5" }
+openzeppelin_access = { git = "https://github.com/OpenZeppelin/contracts-sui.git", subdir = "contracts/access", rev = "v1.3.0" }
+openzeppelin_utils = { git = "https://github.com/OpenZeppelin/contracts-sui.git", subdir = "contracts/utils", rev = "v1.3.0" }
+# openzeppelin's Move.toml also resolves the Sui framework via the floating "testnet"
+# branch ref, which can drift to a newer commit than the one already locked below and
+# break bytecode verification against the locally installed `sui` CLI. Pin both to the
+# exact commit already in Move.lock so the framework version never moves underneath us.
+sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "ff1fe0ec455153707136cffd0dc77dfb77ba9ad5", override = true }
+std = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/move-stdlib", rev = "ff1fe0ec455153707136cffd0dc77dfb77ba9ad5", override = true }
 
 [addresses]
 susu_protocol = "0x0"

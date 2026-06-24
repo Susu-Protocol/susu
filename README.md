@@ -71,7 +71,7 @@ This is the validation behind every design decision in this README: trustless es
 **Core protocol (Move, deployed to Sui Testnet)**
 - Circle creation, joining, starting, contributing, disbursing — full ROSCA lifecycle (`circle.move`)
 - Fixed-order and commit-reveal random rotation (`rotation.move`)
-- On-chain dispute raising, voting, and majority resolution (`dispute.move`)
+- On-chain dispute raising, voting, and majority resolution, with an OpenZeppelin-gated arbiter override and per-circle rate limiting (`dispute.move`)
 - MembershipToken + ContributionBadge minting for portable reputation (`membership.move`)
 - Yield vault with simulated APY accrual, real interface shape for a live money-market swap-in (`vault.move`)
 - - **Credit-scoring API** — expose the on-chain ContributionBadge history as a queryable reputation score that third-party lenders could underwrite against
@@ -193,6 +193,46 @@ yield = principal × apy_bps × elapsed_ms / (10_000 × ms_per_year)
 
 The simplest module by design: `raise_dispute` shares a `Dispute` object keyed to a `circle_id` value (not a `&Circle` reference), so disputes never contend for the circle object's lock. Any address can `vote_on_dispute` once, and any address can `resolve_dispute` once `votes_for + votes_against > 0`, with outcome decided by strict majority (`votes_for * 2 > total`, no quorum requirement). There's currently no on-chain *consequence* wired to the outcome — no automatic slash, refund, or reserve payout. `DisputeResolved` is a verifiable signal today; the slashing/reserve-fund follow-through is the insurance/backstop fund called out in the roadmap above.
 
+### OpenZeppelin Move libraries
+
+`dispute.move` is also where Susu Protocol integrates two of [OpenZeppelin's audited Move libraries for Sui](https://github.com/OpenZeppelin/contracts-sui): `openzeppelin_access` (role-based **Access Control**) and `openzeppelin_utils` (embeddable **Rate Limiting**). Both replace something the module was either missing or handling by hand:
+
+| Gap before | Library | Fix |
+|---|---|---|
+| `raise_dispute` took a bare `circle_id` value with no membership check — any address, member or not, could spam-raise disputes against any circle for free | **Rate Limiting** (`openzeppelin_utils::rate_limiter`) | Each circle gets its own embedded `Cooldown` limiter: 3 disputes before the gate engages, then a 1-hour wait before the next batch |
+| Deadlocked or low-quorum votes (e.g. a 2-member circle splitting 1–1) had no resolution path besides waiting indefinitely | **Access Control** (`openzeppelin_access::access_control`) | A typed `ArbiterRole`, checked entirely by the compiler via `Auth<ArbiterRole>`, can resolve a dispute directly through `resolve_dispute_by_arbiter` — additive to, not a replacement for, the majority-vote path |
+
+**Access Control.** `dispute.move` defines its own One-Time Witness (`DISPUTE`) and role marker (`ArbiterRole`), then mints a singleton `AccessControl<DISPUTE>` registry in `init`, shared at publish time. Granting the role is a normal entry call — `grant_arbiter(ac, account, ctx)` — gated by the registry's own admin check, no `ENotOrganizer`-style hand-rolled assert anywhere in our code. Exercising the role is a two-step PTB: first `mint_arbiter_auth(ac, ctx)` mints an `Auth<ArbiterRole>` proof for the sender (aborting if they don't hold the role), then that proof is passed *by value* into `resolve_dispute_by_arbiter(dispute, auth, upheld)` — the function body has no permission check at all, because a value of type `Auth<ArbiterRole>` can only exist if the registry already verified the holder. The registry's own admin seat (initially the package deployer) can only be reassigned through `AccessControl`'s built-in timelocked transfer flow (`begin_default_admin_transfer` → wait out the delay → `accept_default_admin_transfer`), so there's no single transaction that can silently hijack who controls the `ArbiterRole`.
+
+**Rate Limiting.** A shared `DisputeGuard` object (also created in `init`) holds a `Table<ID, RateLimiter>` — one limiter per circle, created lazily on that circle's first dispute. `raise_dispute` calls `rate_limiter::consume_or_abort` against the circle's limiter before doing anything else; once a circle has used its 3 disputes, every further `raise_dispute` against *that* circle aborts until the hour-long cooldown elapses, while every other circle's limiter is completely unaffected — `Table` keys, not a single shared counter, are what make the limits per-circle instead of protocol-wide.
+
+```move
+// contracts/sources/dispute.move
+public entry fun raise_dispute(
+    guard: &mut DisputeGuard,
+    circle_id: ID,
+    reason: vector<u8>,
+    clock: &Clock,
+    ctx: &mut TxContext,
+) {
+    if (!table::contains(&guard.limiters, circle_id)) {
+        table::add(&mut guard.limiters, circle_id,
+            rate_limiter::new_cooldown(MAX_DISPUTES_PER_CIRCLE, DISPUTE_COOLDOWN_MS, 0, MAX_DISPUTES_PER_CIRCLE, clock));
+    };
+    rate_limiter::consume_or_abort(table::borrow_mut(&mut guard.limiters, circle_id), 1, clock);
+    // ... unchanged: construct and share the Dispute object
+}
+```
+
+Both libraries are pulled in as ordinary git dependencies in `contracts/Move.toml` (`openzeppelin_access`, `openzeppelin_utils`, pinned to release `v1.3.0`). One integration gotcha worth recording: OpenZeppelin's own `Move.toml` resolves the Sui framework via the floating `testnet` branch ref, which can drift to a newer commit than the one this repo already has locked — and a newer framework commit failed bytecode verification against the `sui` CLI version this was built against. The fix is the two explicit `override = true` entries at the bottom of `contracts/Move.toml`, pinning the framework to one exact commit for every dependency in the graph, OpenZeppelin's included.
+
+See `contracts/tests/dispute_tests.move` for the runtime proof: rate-limit tests assert the 4th same-circle dispute aborts while a different circle's limiter is untouched, and access-control tests assert only a granted `ArbiterRole` holder can mint the auth proof needed to call the override.
+
+### Why none of this is one big function
+
+`circle.move` never imports `dispute`, and only reaches into `vault`/`membership`/`rotation` through their public function signatures, never their internals. The atomicity the rest of this README leans on (`contribute → vault-deposit`, `end_cycle → withdraw → disburse → mint_badges`) comes from the **client**, not from Move code — `lib/sui/ptb.ts` composes multiple `moveCall`s into one `Transaction`, which Sui executes as a single all-or-nothing unit. The contracts expose small, single-responsibility entry points; the PTB layer is what stitches them into the atomic, user-facing flows described earlier in this README.
+
+
 ### Why none of this is one big function
 
 `circle.move` never imports `dispute`, and only reaches into `vault`/`membership`/`rotation` through their public function signatures, never their internals. The atomicity the rest of this README leans on (`contribute → vault-deposit`, `end_cycle → withdraw → disburse → mint_badges`) comes from the **client**, not from Move code — `lib/sui/ptb.ts` composes multiple `moveCall`s into one `Transaction`, which Sui executes as a single all-or-nothing unit. The contracts expose small, single-responsibility entry points; the PTB layer is what stitches them into the atomic, user-facing flows described earlier in this README.
@@ -309,6 +349,7 @@ A 45-year-old market trader in Lagos who has run Susu circles for 20 years now h
 ## Tech stack
 
 - **Blockchain**: Sui Testnet → Mainnet, Move (2024.beta edition)
+- **Move security libraries**: OpenZeppelin Contracts for Sui (`openzeppelin_access` for role-based Access Control, `openzeppelin_utils` for embeddable Rate Limiting) — see [OpenZeppelin Move libraries](#openzeppelin-move-libraries) above
 - **Frontend**: Next.js (App Router), TypeScript, Tailwind CSS v4
 - **Sui SDK**: `@mysten/sui`, `@mysten/enoki` (zkLogin), `@mysten/zklogin`
 - **DEX**: `@mysten/deepbook-v3` — live CLOB quotes + swap PTB construction
